@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Accounting Shooter - ยิงเป้าเดบิต เครดิต</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { background: #111; color: #fff; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; overflow: hidden; }
+        
+        #game-board {
+            width: 100%; max-width: 500px; height: 480px; background: #064e3b;
+            border: 4px solid #10b981; border-radius: 15px; position: relative; overflow: hidden;
+        }
+
+        .hud {
+            position: absolute; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.7);
+            padding: 12px; display: flex; justify-content: space-between; font-weight: bold; font-size: 15px; z-index: 10;
+        }
+
+        .target {
+            position: absolute; top: 70px; width: 90px; height: 90px; border-radius: 50%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: bold; color: #fff; border: 3px solid #fff;
+        }
+        #target-dr { left: 15px; background: #dc2626; }
+        #target-cr { right: 15px; background: #2563eb; }
+        .target span { font-size: 12px; font-weight: normal; }
+
+        #gun-box {
+            position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; z-index: 20;
+        }
+        #bullet {
+            width: 90px; height: 90px; background: #f59e0b; border: 3px solid #fff;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            text-align: center; color: #000; font-weight: bold; font-size: 14px; padding: 5px;
+            box-shadow: 0 0 12px #f59e0b;
+        }
+        #gun { width: 30px; height: 35px; background: #64748b; border-radius: 5px 5px 0 0; margin-top: 5px; }
+
+        #feedback {
+            position: absolute; top: 175px; width: 100%; text-align: center;
+            font-size: 16px; font-weight: bold; text-shadow: 0 2px 4px #000; z-index: 30;
+        }
+
+        .controls {
+            width: 100%; max-width: 500px; display: flex; gap: 10px; margin-top: 12px; height: 65px;
+        }
+        .btn-shoot {
+            flex: 1; border: none; border-radius: 12px; color: #fff; font-size: 20px; font-weight: bold;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .btn-shoot:active { opacity: 0.7; transform: scale(0.98); }
+        #btn-dr { background: #dc2626; }
+        #btn-cr { background: #2563eb; }
+
+        #overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #022c22; z-index: 99;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 20px; text-align: center;
+        }
+        #start-btn {
+            background: #10b981; color: #fff; border: none; padding: 16px 32px;
+            font-size: 22px; font-weight: bold; border-radius: 30px; margin-top: 20px; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); width: 85%; max-width: 280px;
+        }
+        #start-btn:active { background: #059669; transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+    <div id="game-board">
+        <div class="hud">
+            <div>คะแนน: <span id="score" style="color:#34d399">0</span></div>
+            <div>เวลา: <span id="timer" style="color:#f59e0b">60</span>s</div>
+            <div><span id="lives">❤️❤️❤️</span></div>
+        </div>
+
+        <div id="target-dr" class="target">Dr.<span>เดบิต</span></div>
+        <div id="target-cr" class="target">Cr.<span>เครดิต</span></div>
+
+        <div id="feedback"></div>
+
+        <div id="gun-box">
+            <div id="bullet">พร้อมเล่น</div>
+            <div id="gun"></div>
+        </div>
+
+        <!-- หน้าจอเริ่มต้น -->
+        <div id="overlay">
+            <h2 id="overlay-title" style="color: #34d399; margin-bottom: 12px; font-size: 24px;">🎯 ACCOUNTING SHOOTER</h2>
+            <div id="overlay-desc" style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; font-size: 14px; line-height: 1.6; text-align: left; width: 100%;">
+                <b>วิธีเล่นง่ายๆ:</b><br>
+                1. อ่านชื่อบัญชีบน "ลูกกระสุน"<br>
+                2. กดปุ่ม <b>ยิง Dr.</b> หรือ <b>ยิง Cr.</b> ด้านล่าง<br>
+                3. ตอบถูกได้คะแนน ตอบผิดเสียชีวิต!
+            </div>
+            <button id="start-btn" onclick="startGame()">🚀 แตะเพื่อเริ่มเล่น</button>
+        </div>
+    </div>
+
+    <!-- ปุ่มยิงควบคุม -->
+    <div class="controls">
+        <button id="btn-dr" class="btn-shoot" onclick="shoot('Dr')">🎯 ยิงเป้า Dr.</button>
+        <button id="btn-cr" class="btn-shoot" onclick="shoot('Cr')">🎯 ยิงเป้า Cr.</button>
+    </div>
+
+<script>
+    var ammoData = [
+        // สินทรัพย์ (Assets)
+        { text: "เงินสด (+)", correct: "Dr", hint: "สินทรัพย์เพิ่มขึ้น อยู่ฝั่ง Dr." },
+        { text: "เงินฝาก (+)", correct: "Dr", hint: "สินทรัพย์เพิ่มขึ้น อยู่ฝั่ง Dr." },
+        { text: "ลูกหนี้ (+)", correct: "Dr", hint: "สินทรัพย์เพิ่มขึ้น อยู่ฝั่ง Dr." },
+        { text: "อุปกรณ์ (+)", correct: "Dr", hint: "สินทรัพย์เพิ่มขึ้น อยู่ฝั่ง Dr." },
+        { text: "อาคาร (+)", correct: "Dr", hint: "สินทรัพย์เพิ่มขึ้น อยู่ฝั่ง Dr." },
+        { text: "สินค้าคงเหลือ (+)", correct: "Dr", hint: "สินทรัพย์เพิ่มขึ้น อยู่ฝั่ง Dr." },
+        { text: "เงินสด (-)", correct: "Cr", hint: "สินทรัพย์ลดลง อยู่ฝั่ง Cr." },
+        { text: "ลูกหนี้ (-)", correct: "Cr", hint: "สินทรัพย์ลดลง อยู่ฝั่ง Cr." },
+        { text: "ค่าเสื่อมราคาสะสม", correct: "Cr", hint: "บัญชีปรับมูลค่าสินทรัพย์ อยู่ฝั่ง Cr." },
+
+        // หนี้สิน (Liabilities)
+        { text: "เจ้าหนี้ (+)", correct: "Cr", hint: "หนี้สินเพิ่มขึ้น อยู่ฝั่ง Cr." },
+        { text: "เงินกู้ (+)", correct: "Cr", hint: "หนี้สินเพิ่มขึ้น อยู่ฝั่ง Cr." },
+        { text: "ตั๋วเงินจ่าย (+)", correct: "Cr", hint: "หนี้สินเพิ่มขึ้น อยู่ฝั่ง Cr." },
+        { text: "เจ้าหนี้ (-)", correct: "Dr", hint: "หนี้สินลดลง อยู่ฝั่ง Dr." },
+        { text: "เงินกู้ (-)", correct: "Dr", hint: "หนี้สินลดลง อยู่ฝั่ง Dr." },
+        
+        // ส่วนของผู้ถือหุ้น (Shareholders' Equity)
+        { text: "ทุนหุ้นสามัญ", correct: "Cr", hint: "ส่วนของผู้ถือหุ้นเพิ่มขึ้น อยู่ฝั่ง Cr." },
+        { text: "ส่วนเกินมูลค่าหุ้น", correct: "Cr", hint: "ส่วนทุนเพิ่มขึ้น อยู่ฝั่ง Cr." },
+        { text: "กำไรสะสม (+)", correct: "Cr", hint: "กำไรสะสมเพิ่มขึ้น อยู่ฝั่ง Cr." },
+        { text: "สำรองตามกฎหมาย", correct: "Cr", hint: "จัดสรรกำไรสะสม เพิ่มฝั่ง Cr." },
+        { text: "เงินปันผลจ่าย", correct: "Dr", hint: "เงินปันผลจ่ายทำให้ทุนลดลง อยู่ฝั่ง Dr." },
+        { text: "หุ้นทุนเอาคืน", correct: "Dr", hint: "บัญชีหักส่วนของผู้ถือหุ้น อยู่ฝั่ง Dr." },
+        { text: "ถอนใช้ส่วนตัว", correct: "Dr", hint: "ถอนใช้ส่วนตัวทำให้ทุนลดลง อยู่ฝั่ง Dr." },
+
+        // รายได้ (Revenue)
+        { text: "รายได้บริการ", correct: "Cr", hint: "รายได้เพิ่มขึ้น อยู่ฝั่ง Cr." },
+        { text: "รายได้ขายสินค้า", correct: "Cr", hint: "รายได้เพิ่มขึ้น อยู่ฝั่ง Cr." },
+        { text: "ดอกเบี้ยรับ", correct: "Cr", hint: "รายได้เพิ่มขึ้น อยู่ฝั่ง Cr." },
+
+        // ค่าใช้จ่าย (Expenses)
+        { text: "เงินเดือน (+)", correct: "Dr", hint: "ค่าใช้จ่ายเพิ่มขึ้น อยู่ฝั่ง Dr." },
+        { text: "ค่าเช่า (+)", correct: "Dr", hint: "ค่าใช้จ่ายเพิ่มขึ้น อยู่ฝั่ง Dr." },
+        { text: "ค่าน้ำค่าไฟ (+)", correct: "Dr", hint: "ค่าใช้จ่ายเพิ่มขึ้น อยู่ฝั่ง Dr." },
+        { text: "ค่าโฆษณา (+)", correct: "Dr", hint: "ค่าใช้จ่ายเพิ่มขึ้น อยู่ฝั่ง Dr." },
+        { text: "ต้นทุนขาย (+)", correct: "Dr", hint: "ค่าใช้จ่ายเพิ่มขึ้น อยู่ฝั่ง Dr." },
+
+        // รายการปรับปรุง (Adjusting Entries)
+        { text: "ค่าประกันจ่ายล่วงหน้า", correct: "Dr", hint: "ถือเป็น 'สินทรัพย์' อยู่ฝั่ง Dr." },
+        { text: "รายได้รับล่วงหน้า", correct: "Cr", hint: "ถือเป็น 'หนี้สิน' อยู่ฝั่ง Cr." },
+        { text: "ดอกเบี้ยค้างจ่าย", correct: "Cr", hint: "ถือเป็น 'หนี้สิน' อยู่ฝั่ง Cr." },
+        { text: "รายได้ค้างรับ", correct: "Dr", hint: "ถือเป็น 'สินทรัพย์' อยู่ฝั่ง Dr." },
+        { text: "ค่าเสื่อมราคา-อาคาร", correct: "Dr", hint: "ถือเป็น 'ค่าใช้จ่าย' อยู่ฝั่ง Dr." },
+        { text: "วัสดุสำนักงานใช้ไป", correct: "Dr", hint: "ถือเป็น 'ค่าใช้จ่าย' อยู่ฝั่ง Dr." },
+        { text: "หนี้สงสัยจะสูญ", correct: "Dr", hint: "ถือเป็น 'ค่าใช้จ่าย' อยู่ฝั่ง Dr." },
+        { text: "ค่าเผื่อหนี้สงสัยจะสูญ", correct: "Cr", hint: "บัญชีปรับมูลค่าลูกหนี้ อยู่ฝั่ง Cr." }
+    ];
+
+    var currentItem = null;
+    var score = 0;
+    var lives = 3;
+    var time = 60;
+    var timerId = null;
+    var isPlaying = false;
+
+    function startGame() {
+        score = 0;
+        lives = 3;
+        time = 60;
+        isPlaying = true;
+
+        document.getElementById('score').innerText = score;
+        document.getElementById('timer').innerText = time;
+        document.getElementById('lives').innerText = "❤️❤️❤️";
+        document.getElementById('feedback').innerText = "";
+        
+        // ปิด Overlay
+        document.getElementById('overlay').style.display = 'none';
+
+        nextQuestion();
+
+        if (timerId) clearInterval(timerId);
+        timerId = setInterval(function() {
+            time--;
+            document.getElementById('timer').innerText = time;
+            if (time <= 0) {
+                endGame(true);
+            }
+        }, 1000);
+    }
+
+    function nextQuestion() {
+        var randomIndex = Math.floor(Math.random() * ammoData.length);
+        currentItem = ammoData[randomIndex];
+        document.getElementById('bullet').innerText = currentItem.text;
+    }
+
+    function shoot(choice) {
+        if (!isPlaying) return;
+
+        var fb = document.getElementById('feedback');
+        if (choice === currentItem.correct) {
+            score += 100;
+            document.getElementById('score').innerText = score;
+            fb.innerHTML = "<span style='color:#34d399;'>✨ ถูกต้อง! +100</span>";
+        } else {
+            lives--;
+            var h = "";
+            for (var i = 0; i < lives; i++) h += "❤️";
+            for (var j = lives; j < 3; j++) h += "🖤";
+            document.getElementById('lives').innerText = h;
+
+            fb.innerHTML = "<span style='color:#f87171;'>❌ ผิด! 💡 " + currentItem.hint + "</span>";
+
+            if (lives <= 0) {
+                endGame(false);
+                return;
+            }
+        }
+
+        setTimeout(function() {
+            if (isPlaying) fb.innerText = "";
+        }, 1200);
+
+        nextQuestion();
+    }
+
+    function endGame(isTimeUp) {
+        isPlaying = false;
+        if (timerId) clearInterval(timerId);
+
+        document.getElementById('overlay-title').innerText = isTimeUp ? "⏰ หมดเวลาแล้ว!" : "💥 พลังชีวิตหมด!";
+        document.getElementById('overlay-desc').innerHTML = "<p style='font-size:18px; text-align:center;'>คะแนนรวมของคุณคือ: <b style='color:#f59e0b; font-size:24px;'>" + score + " คะแนน</b></p>";
+        document.getElementById('start-btn').innerText = "🔄 แตะเพื่อเล่นใหม่";
+        
+        document.getElementById('overlay').style.display = 'flex';
+    }
+</script>
+</body>
+</html>
